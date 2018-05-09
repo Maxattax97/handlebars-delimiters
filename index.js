@@ -46,11 +46,20 @@ module.exports = function(Handlebars, delimiters) {
     var args = [].slice.call(arguments);
     if (typeof str === 'string') {
       if(delimiters[0] !== '{{' && delimiters[1] !== '}}') {
-        args[0] = escapeDelimiters(args[0]);
+        args[0] = replaceDelimiters(args[0], source);
       }
-      args[0] = replaceDelimiters(args[0], source);
     }
-    return Handlebars._compile.apply(Handlebars, args);
+    var handle = Handlebars._compile.apply(Handlebars, args);
+
+    return function() {
+      const result = handle.apply(this, arguments);
+  
+      if (delimiters[0] !== '{{' && delimiters[1] !== '}}') {
+        return unescapeCurly(result);
+      }
+    
+      return result;
+    }
   };
 };
 
@@ -69,15 +78,23 @@ module.exports = function(Handlebars, delimiters) {
  */
 
 function replaceDelimiters(str, source, escape) {
+  // Replace delimiters with __OPEN__ and __CLOSE__
   var regex = cache[source] || (cache[source] = new RegExp(source, 'g'));
   var match;
 
   while ((match = regex.exec(str))) {
     var prefix = str.slice(0, match.index);
-    var inner = (escape ? '\\' : '') + '{{' + match[1] + '}}';
+    var inner = (escape ? '\\' : '') + '__OPEN__' + match[1] + '__CLOSE__';
     var suffix = str.slice(match.index + match[0].length);
     str = prefix + inner + suffix;
   }
+
+  // Replace all remaining curly braces
+  str = str.replace(/\{/g, '__OPEN_CURLY__').replace(/\}/g, '__CLOSE_CURLY__');
+
+  // Replace __OPEN__ with {{ and __CLOSE__ with }}
+  str = str.replace(/__OPEN__/g, '{{').replace(/__CLOSE__/g, '}}');
+
   return str;
 }
 
@@ -96,6 +113,22 @@ function replaceDelimiters(str, source, escape) {
 function escapeDelimiters(str) {
   return replaceDelimiters(str, '{{([\\s\\S]+?)}}', true);
 }
+
+/**
+ * Unescape curly braces that have been escaped
+ *
+ * ```js
+ * var unescaped = replaceCurly(str);
+ * ```
+ * @name replaceCurly
+ * @param {String} `str` String with escaped curly braces to unescape
+ * @return {String}
+ * @api private
+ */
+function unescapeCurly(str) {
+  return str.replace(/__OPEN_CURLY__/g, '{').replace(/__CLOSE_CURLY__/g, '}');
+}
+
 
 /**
  * Expose `escapeDelimiters` and `replaceDelimiters`
