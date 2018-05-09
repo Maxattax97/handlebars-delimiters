@@ -52,7 +52,7 @@ module.exports = function(Handlebars, delimiters) {
     var handle = Handlebars._compile.apply(Handlebars, args);
 
     return function() {
-      const result = handle.apply(this, arguments);
+      var result = handle.apply(this, arguments);
   
       if (delimiters[0] !== '{{' && delimiters[1] !== '}}') {
         return unescapeCurly(result);
