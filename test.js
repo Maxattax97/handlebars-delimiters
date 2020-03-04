@@ -12,7 +12,7 @@ var handlebars = require('handlebars');
 var delimiters = require('./');
 var hbs;
 
-var fixture = '{%= name %}{{ name }}{{{ name }}}<%= name %><% name %><<= name >><< name >>%{name}%{ name }';
+var fixture = '{%= name %}{{ name }}{{{ name }}}<%= name %><% name %><<= name >><< name >>%{name}%{ name }[[ name ]]';
 
 describe('custom handlebars delimiters', function() {
   beforeEach(function() {
@@ -26,37 +26,42 @@ describe('custom handlebars delimiters', function() {
 
   it('should use default delimiters', function() {
     var actual = hbs.compile(fixture)({name: 'Jon Schlinkert'});
-    testWith(fixture, '{%= name %}Jon SchlinkertJon Schlinkert<%= name %><% name %><<= name >><< name >>%{name}%{ name }');
+    testWith(fixture, '{%= name %}Jon SchlinkertJon Schlinkert<%= name %><% name %><<= name >><< name >>%{name}%{ name }[[ name ]]');
   });
 
   it('should use <%=...%>', function() {
     delimiters(hbs, ['<%=', '%>']);
-    testWith(fixture, '{%= name %}{{ name }}{{{ name }}}Jon Schlinkert<% name %><<= name >><< name >>%{name}%{ name }');
+    testWith(fixture, '{%= name %}{{ name }}{{{ name }}}Jon Schlinkert<% name %><<= name >><< name >>%{name}%{ name }[[ name ]]');
   });
 
   it('should use {%=...%}', function() {
     delimiters(hbs, ['{%=', '%}']);
-    testWith(fixture, 'Jon Schlinkert{{ name }}{{{ name }}}<%= name %><% name %><<= name >><< name >>%{name}%{ name }');
+    testWith(fixture, 'Jon Schlinkert{{ name }}{{{ name }}}<%= name %><% name %><<= name >><< name >>%{name}%{ name }[[ name ]]');
   });
 
   it('should use <%...%>', function() {
     delimiters(hbs, ['<%', '%>']);
-    testWith(fixture, '{%= name %}{{ name }}{{{ name }}}<%= name %>Jon Schlinkert<<= name >><< name >>%{name}%{ name }');
+    testWith(fixture, '{%= name %}{{ name }}{{{ name }}}<%= name %>Jon Schlinkert<<= name >><< name >>%{name}%{ name }[[ name ]]');
   });
 
   it('should use <<...>>', function() {
     delimiters(hbs, ['<<', '>>']);
-    testWith(fixture, '{%= name %}{{ name }}{{{ name }}}<%= name %><% name %><<= name >>Jon Schlinkert%{name}%{ name }');
+    testWith(fixture, '{%= name %}{{ name }}{{{ name }}}<%= name %><% name %><<= name >>Jon Schlinkert%{name}%{ name }[[ name ]]');
   });
 
   it('should use <<=...>>', function() {
     delimiters(hbs, ['<<=', '>>']);
-    testWith(fixture, '{%= name %}{{ name }}{{{ name }}}<%= name %><% name %>Jon Schlinkert<< name >>%{name}%{ name }');
+    testWith(fixture, '{%= name %}{{ name }}{{{ name }}}<%= name %><% name %>Jon Schlinkert<< name >>%{name}%{ name }[[ name ]]');
   });
 
   it('should use %{...} with or without spaces', function() {
     delimiters(hbs, ['%{', '}']);
-    testWith(fixture, '{%= name %}{{ name }}{{{ name }}}<%= name %><% name %><<= name >><< name >>Jon SchlinkertJon Schlinkert');
+    testWith(fixture, '{%= name %}{{ name }}{{{ name }}}<%= name %><% name %><<= name >><< name >>Jon SchlinkertJon Schlinkert[[ name ]]');
+  });
+
+  it('should use [[...]]', function() {
+    delimiters(hbs, ['[[', ']]']);
+    testWith(fixture, '{%= name %}{{ name }}{{{ name }}}<%= name %><% name %><<= name >><< name >>%{name}%{ name }Jon Schlinkert');
   });
 
   it('should handle no spaces in first occurence', function() {

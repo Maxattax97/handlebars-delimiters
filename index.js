@@ -31,11 +31,13 @@ var cache = {};
  */
 
 module.exports = function(Handlebars, delimiters) {
-  if (delimiters[0].slice(-1) !== '=') {
-    delimiters[0] += '(?!=)';
+  var open = escapeRegExp(delimiters[0]);
+  var close = escapeRegExp(delimiters[1]);
+  if (open.slice(-1) !== '=') {
+    open += '(?!=)';
   }
 
-  var source = delimiters[0] + '([\\s\\S]+?)' + delimiters[1];
+  var source = open + '([\\s\\S]+?)' + close;
 
   // Idea for compile method from http://stackoverflow.com/a/19181804/1267639
   if (!Handlebars._compile) {
@@ -45,7 +47,7 @@ module.exports = function(Handlebars, delimiters) {
   Handlebars.compile = function(str) {
     var args = [].slice.call(arguments);
     if (typeof str === 'string') {
-      if(delimiters[0] !== '{{' && delimiters[1] !== '}}') {
+      if (open !== '{{' && close !== '}}') {
         args[0] = escapeDelimiters(args[0]);
       }
       args[0] = replaceDelimiters(args[0], source);
@@ -95,6 +97,13 @@ function replaceDelimiters(str, source, escape) {
 
 function escapeDelimiters(str) {
   return replaceDelimiters(str, '{{([\\s\\S]+?)}}', true);
+}
+
+var matchRegExpSymbols = /[.*+?^${}()|[\]\\]/g;
+
+// https://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
+function escapeRegExp(string) {
+  return string.replace(matchRegExpSymbols, '\\$&');
 }
 
 /**
