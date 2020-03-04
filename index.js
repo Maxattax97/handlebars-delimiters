@@ -25,15 +25,15 @@ var cache = {};
  * // you can now use handlebars as usual, but with the new delimiters
  * ```
  * @param {Object} `Handlebars`
- * @param {Array} `delimiters` Array with open and close delimiters, like `['<%', '%>']`
+ * @param {Array.<String|RegExp>} `delimiters` Array with open and close delimiters, like `['<%', '%>']`
  * @return {undefined}
  * @api public
  */
 
 module.exports = function(Handlebars, delimiters) {
-  var open = escapeRegExp(delimiters[0]);
-  var close = escapeRegExp(delimiters[1]);
-  if (open.slice(-1) !== '=') {
+  var open = delimiterRegExp(delimiters[0]);
+  var close = delimiterRegExp(delimiters[1]);
+  if (!(delimiters[0] instanceof RegExp) && open.slice(-1) !== '=') {
     open += '(?!=)';
   }
 
@@ -97,6 +97,19 @@ function replaceDelimiters(str, source, escape) {
 
 function escapeDelimiters(str) {
   return replaceDelimiters(str, '{{([\\s\\S]+?)}}', true);
+}
+
+var matchRegExp = /^\/\^?(.*)\$?\/[a-z]*$/i;
+
+/**
+ * Transforms RegExp or string to string escaped to be used in RegExp.
+ * @param {String|RegExp} `delimiter`  RegExp or string to escape
+ * @return {String}
+ * @api private
+ */
+function delimiterRegExp(delimiter) {
+  return !(delimiter instanceof RegExp) ? escapeRegExp(delimiter)
+    : delimiter.toString().replace(matchRegExp, '$1');
 }
 
 var matchRegExpSymbols = /[.*+?^${}()|[\]\\]/g;

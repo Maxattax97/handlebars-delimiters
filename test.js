@@ -73,4 +73,17 @@ describe('custom handlebars delimiters', function() {
     delimiters(hbs, ['%{', '}']);
     testWith("%{ name }", 'Jon Schlinkert');
   });
+
+  it('should handle RegExp delimiters', function() {
+    delimiters(hbs, [/[A-M]/, /[N-Z]/]);
+    var fixture = 'A name_B_name_C_name X_name_Y_name_Z_D name W';
+    var expectation = '_name_Y_name_Z_Jon Schlinkert';
+    testWith(fixture, expectation);
+  });
+
+  it('should not modify equal sign query from RegExp open delimiter', function() {
+    delimiters(hbs, [/\[/, /]/]);
+    var test = function() { testWith('[= name ]', ''); };
+    assert.throws(test, Error, 'Error Thrown for equal sign in expression');
+  });
 });
