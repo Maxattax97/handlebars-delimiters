@@ -77,7 +77,7 @@ module.exports = function(Handlebars, delimiters) {
     return function(tplArgs) {
       tplArgs = [].slice.call(arguments);
       var result = '';
-      compileMap.forEach(part => {
+      compileMap.forEach(function(part) {
         if (typeof part === 'string') {
           // No custom delimiter matched; Escape default open delimiters
           part = part.replace(matchDefaultOpen, '\\$&');
@@ -132,7 +132,7 @@ function wrapWithDelimiters(content, delimiters) {
 
 function mapDelimiters(compileMap, source, delimiters) {
   var result = [];
-  compileMap.forEach(part => {
+  compileMap.forEach(function(part) {
     if (typeof part !== 'string') {
       result.push(part);
       return;
