@@ -86,4 +86,20 @@ describe('custom handlebars delimiters', function() {
     var test = function() { testWith('[= name ]', ''); };
     assert.throws(test, Error, 'Error Thrown for equal sign in expression');
   });
+
+  it('should sanitize non-html delimiters', function() {
+    delimiters(hbs, ['<%', '%>', '<<%', '%>>']);
+    var fixture = '<% html %>';
+    var expectation = '&amp;lt;&amp;gt;';
+    var actual = hbs.compile(fixture)({html: '&lt;&gt;'});
+    assert.equal(actual, expectation);
+  });
+
+  it('should mark safe html delimiters', function() {
+    delimiters(hbs, ['<%', '%>', '<<%', '%>>']);
+    var fixture = '<<% html %>>';
+    var expectation = '&lt;&gt;';
+    var actual = hbs.compile(fixture)({html: '&lt;&gt;'});
+    assert.equal(actual, expectation);
+  });
 });

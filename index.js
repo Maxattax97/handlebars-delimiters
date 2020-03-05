@@ -13,6 +13,20 @@
 
 var cache = {};
 
+var htmlEscapeDelimiters = [
+  '{{', '}}'
+];
+var htmlSafeDelimiters = [
+  '{{{', '}}}'
+];
+var defaultDelimiters = [].concat(
+  htmlEscapeDelimiters,
+  htmlSafeDelimiters
+);
+
+// For escaping default open delimiter
+var matchDefaultOpen = /{{(?!{)/g;
+
 /**
  * Pass `Handlebars` and the `delimiters` to use as replacements. This
  * patches the `Handlebars.compile` method to automatically use the
@@ -21,23 +35,27 @@ var cache = {};
  * ```js
  * var delimiters = require('handlebars-delimiters');
  * var handlebars = require('handlebars');
- * delimiters(handlebars, ['<%', '%>']);
+ * delimiters(handlebars, ['<%', '%>', '<<%', '%>>']);
  * // you can now use handlebars as usual, but with the new delimiters
  * ```
  * @param {Object} `Handlebars`
- * @param {Array.<String|RegExp>} `delimiters` Array with open and close delimiters, like `['<%', '%>']`
+ * @param {Array.<String|RegExp>} `delimiters` Array with open and close, html-escape and html-safe delimiters, like `['<%', '%>', '<<%', '%>>']`
  * @return {undefined}
  * @api public
  */
 
 module.exports = function(Handlebars, delimiters) {
-  var open = delimiterRegExp(delimiters[0]);
-  var close = delimiterRegExp(delimiters[1]);
-  if (!(delimiters[0] instanceof RegExp) && open.slice(-1) !== '=') {
-    open += '(?!=)';
+  var source = [];
+  var open, close, o, c;
+  // Prepare sources for html-escape and html-safe delimiters
+  for (o = 0, c = o + 1; o <= 2; o += 2, c = o + 1) {
+    open = delimiterRegExp(delimiters[o], open, defaultDelimiters[o]);
+    close = delimiterRegExp(delimiters[c], close, defaultDelimiters[c]);
+    if (!(delimiters[o] instanceof RegExp) && open.slice(-1) !== '=') {
+      open += '(?!=)';
+    }
+    source.push(open + '([\\s\\S]+?)' + close);
   }
-
-  var source = open + '([\\s\\S]+?)' + close;
 
   // Idea for compile method from http://stackoverflow.com/a/19181804/1267639
   if (!Handlebars._compile) {
@@ -46,82 +64,92 @@ module.exports = function(Handlebars, delimiters) {
 
   Handlebars.compile = function(str) {
     var args = [].slice.call(arguments);
-    if (typeof str === 'string') {
-      if (open !== '{{' && close !== '}}') {
-        args[0] = escapeDelimiters(args[0]);
-      }
-      args[0] = replaceDelimiters(args[0], source);
+    if (typeof str !== 'string') {
+      return Handlebars._compile.apply(Handlebars, args);
     }
-    return Handlebars._compile.apply(Handlebars, args);
+    args = args.slice(1);
+
+    // Prepare matched custom delimiters and other parts from unescaped content
+    var compileMap = [str];
+    compileMap = mapDelimiters(compileMap, source[1], htmlSafeDelimiters);
+    compileMap = mapDelimiters(compileMap, source[0], htmlEscapeDelimiters);
+
+    return function(tplArgs) {
+      tplArgs = [].slice.call(arguments);
+      var result = '';
+      compileMap.forEach(part => {
+        if (typeof part === 'string') {
+          // No custom delimiter matched; Escape default open delimiters
+          part = part.replace(matchDefaultOpen, '\\$&');
+        } else {
+          // Custom delimiter matched; get handlebar-ized source
+          part = part();
+        }
+        result += part;
+      });
+      // Allow Handlebars to compile our resulting template of handlebar-ized
+      // custom delimiters and unescape our temporarily escaped default delimiters
+      return Handlebars._compile
+        .apply(Handlebars, [result].concat(args))
+        .apply(null, tplArgs);
+    };
   };
 };
 
-/**
- * Replace or delimiters in the given string.
- *
- * ```js
- * var replaced = delimiters.replace(str, ['<%=', '%>']);
- * ```
- * @name .replace
- * @param {String} `str` String with handlebars to replace or escape.
- * @param {String} `source` The delimiters regex source string to conver to a regular expression.
- * @param {Boolean} `escape` If true, replacements are escaped with a double-slash.
- * @return {String}
- * @api public
- */
-
-function replaceDelimiters(str, source, escape) {
-  var regex = cache[source] || (cache[source] = new RegExp(source, 'g'));
-  var match;
-
-  while ((match = regex.exec(str))) {
-    var prefix = str.slice(0, match.index);
-    var inner = (escape ? '\\' : '') + '{{' + match[1] + '}}';
-    var suffix = str.slice(match.index + match[0].length);
-    str = prefix + inner + suffix;
-  }
-  return str;
-}
-
-/**
- * Escape handlebars delimiters in the given string.
- *
- * ```js
- * var escaped = delimiters.escape(str);
- * ```
- * @name .escape
- * @param {String} `str` String with handlebars to replace or escape.
- * @return {String}
- * @api public
- */
-
-function escapeDelimiters(str) {
-  return replaceDelimiters(str, '{{([\\s\\S]+?)}}', true);
-}
-
-var matchRegExp = /^\/\^?(.*)\$?\/[a-z]*$/i;
+// For extracting inner RegExp string (e.g. '/this/gi' to 'this' )
+var matchRegExpToString = /^\/\^?(.*)\$?\/[a-z]*$/i;
 
 /**
  * Transforms RegExp or string to string escaped to be used in RegExp.
- * @param {String|RegExp} `delimiter`  RegExp or string to escape
+ * @param {String|RegExp|*} `delimiter`  RegExp or string to escape
+ * @param {Array.<String|RegExp|*>} `defaults`  Successive values to use if delimiter is empty
  * @return {String}
- * @api private
  */
-function delimiterRegExp(delimiter) {
-  return !(delimiter instanceof RegExp) ? escapeRegExp(delimiter)
-    : delimiter.toString().replace(matchRegExp, '$1');
+function delimiterRegExp(delimiter, defaults) {
+  var isRegExp, isString;
+  for (var i = 0; i < arguments.length; ++i) {
+    delimiter = arguments[i];
+    isString = typeof delimiter === 'string';
+    isRegExp = !isString && delimiter instanceof RegExp;
+    if (isString || isRegExp) {
+      return isString ? escapeRegExp(delimiter)
+        : delimiter.toString().replace(matchRegExpToString, '$1');
+    }
+  }
 }
 
-var matchRegExpSymbols = /[.*+?^${}()|[\]\\]/g;
-
 // https://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
+var matchRegExpSymbols = /[.*+?^${}()|[\]\\]/g;
 function escapeRegExp(string) {
   return string.replace(matchRegExpSymbols, '\\$&');
 }
 
-/**
- * Expose `escapeDelimiters` and `replaceDelimiters`
- */
+function wrapWithDelimiters(content, delimiters) {
+  return function() {
+    return delimiters[0] + content + delimiters[1];
+  };
+}
 
-module.exports.replace = replaceDelimiters;
-module.exports.escape = escapeDelimiters;
+function mapDelimiters(compileMap, source, delimiters) {
+  var result = [];
+  compileMap.forEach(part => {
+    if (typeof part !== 'string') {
+      result.push(part);
+      return;
+    }
+    var regex = cache[source] || (cache[source] = new RegExp(source));
+    var match;
+    var str = part;
+    while ((match = str.match(regex))) {
+      if (match.index > 0) {
+        result.push(str.slice(0, match.index));
+      }
+      result.push(wrapWithDelimiters(match[1], delimiters));
+      str = str.slice(match.index + match[0].length);
+    }
+    if (str.length) {
+      result.push(str);
+    }
+  });
+  return result;
+}
