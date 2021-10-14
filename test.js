@@ -29,6 +29,16 @@ describe('custom handlebars delimiters', function() {
     testWith(fixture, '{%= name %}Jon SchlinkertJon Schlinkert<%= name %><% name %><<= name >><< name >>%{name}%{ name }');
   });
 
+  it('should use {{...}}', function () {
+    delimiters(hbs, ['{{', '}}']);
+    testWith(fixture, '{%= name %}Jon SchlinkertJon Schlinkert<%= name %><% name %><<= name >><< name >>%{name}%{ name }');
+  });
+
+  it('should not replace __OPEN_CURLY__ when using {{...}}', function () {
+    delimiters(hbs, ['{{', '}}']);
+    testWith('__OPEN_CURLY__ {{name}}', '__OPEN_CURLY__ Jon Schlinkert');
+  });
+
   it('should use <%=...%>', function() {
     delimiters(hbs, ['<%=', '%>']);
     testWith(fixture, '{%= name %}{{ name }}{{{ name }}}Jon Schlinkert<% name %><<= name >><< name >>%{name}%{ name }');
@@ -93,5 +103,10 @@ describe('custom handlebars delimiters', function() {
   it('should handle newlines between templates', function() {
     delimiters(hbs, ['<<&', '&>>']);
     testWith('<<& name &>>\n<<& name &>>', 'Jon Schlinkert\nJon Schlinkert');
+  });
+
+  it('should handle wrapping curly braces', function() {
+    delimiters(hbs, ['<%=', '%>']);
+    testWith("{<%=name%>}", '{Jon Schlinkert}');
   });
 });
