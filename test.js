@@ -66,12 +66,38 @@ describe('custom handlebars delimiters', function() {
 
   it('should handle no spaces in first occurence', function() {
     delimiters(hbs, ['%{', '}']);
-    testWith("%{name}", 'Jon Schlinkert');
+    testWith('%{name}', 'Jon Schlinkert');
   });
 
   it('should handle spaces in first occurence', function() {
     delimiters(hbs, ['%{', '}']);
-    testWith("%{ name }", 'Jon Schlinkert');
+    testWith('%{ name }', 'Jon Schlinkert');
+  });
+
+  // From issue #7.
+  it('should properly escape extra braces', function() {
+    delimiters(hbs, ['<<', '>>']);
+    testWith('{<<name>>}', '{Jon Schlinkert}');
+  });
+
+  it('should handle a lot of whitespace between templates', function() {
+    delimiters(hbs, ['<<&', '&>>']);
+    testWith('<<& name &>>   <<& name &>>', 'Jon Schlinkert   Jon Schlinkert');
+  });
+
+  it('should handle 1 whitespace between templates', function() {
+    delimiters(hbs, ['<<&', '&>>']);
+    testWith('<<& name &>> <<& name &>>', 'Jon Schlinkert Jon Schlinkert');
+  });
+
+  it('should handle no whitespace between templates', function() {
+    delimiters(hbs, ['<<&', '&>>']);
+    testWith('<<& name &>><<& name &>>', 'Jon SchlinkertJon Schlinkert');
+  });
+
+  it('should handle newlines between templates', function() {
+    delimiters(hbs, ['<<&', '&>>']);
+    testWith('<<& name &>>\n<<& name &>>', 'Jon Schlinkert\nJon Schlinkert');
   });
 
   it('should handle RegExp delimiters', function() {
