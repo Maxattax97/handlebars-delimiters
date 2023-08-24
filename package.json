@@ -1,7 +1,7 @@
 {
   "name": "@steeringwaves/handlebars-delimiters",
   "description": "Custom delimiters, for Handlebars templates. Includes greedy patch.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "homepage": "https://github.com/steeringwaves/handlebars-delimiters",
   "repository": {
     "type": "git",
