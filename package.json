@@ -1,17 +1,11 @@
 {
   "name": "handlebars-delimiters",
-  "description": "Custom delimiters, for Handlebars templates.",
+  "description": "Custom delimiters, for Handlebars templates. Includes greedy patch.",
   "version": "1.0.0",
-  "homepage": "https://github.com/jonschlinkert/handlebars-delimiters",
-  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
-  "contributors": [
-    "Adam McCormick (https://github.com/AdamMcCormick)",
-    "Changyu Geng (https://github.com/KingMario)",
-    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
-  ],
-  "repository": "jonschlinkert/handlebars-delimiters",
+  "homepage": "https://github.com/steeringwaves/handlebars-delimiters",
+  "repository": "steeringwaves/handlebars-delimiters",
   "bugs": {
-    "url": "https://github.com/jonschlinkert/handlebars-delimiters/issues"
+    "url": "https://github.com/steeringwaves/handlebars-delimiters/issues"
   },
   "license": "MIT",
   "files": [
